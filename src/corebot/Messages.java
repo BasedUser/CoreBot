@@ -7,6 +7,7 @@ import corebot.Net.*;
 import net.dv8tion.jda.api.*;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.guild.member.*;
+import net.dv8tion.jda.api.events.guild.member.update.GuildMemberUpdateNicknameEvent;
 import net.dv8tion.jda.api.events.message.*;
 import net.dv8tion.jda.api.hooks.*;
 import net.dv8tion.jda.api.requests.*;
@@ -29,6 +30,10 @@ public class Messages extends ListenerAdapter{
     Guild guild;
     Color normalColor = Color.decode("#FAB462");
     Color errorColor = Color.decode("#ff3838");
+	private static final int[][] allowedRanges = { { 0x0020, 0x007E } };
+	private static final int maxNickLength = 32;
+	private static final String invalidNicknameMessage = "Your nickname contains characters that are not allowed." +
+		"Allowed are all printable ASCII and Cyrillic characters. Your nickname has been changed to ";
 
     public Messages(){
         String token = System.getenv("CORE_BOT_TOKEN");
@@ -40,6 +45,9 @@ public class Messages extends ListenerAdapter{
             jda.awaitReady();
             jda.addEventListener(this);
             guild = jda.getGuildById(guildID);
+            
+            Log.info("Started validating nicknames.");
+            guild.loadMembers(this::validateNickname);
 
             Log.info("Discord bot up.");
             Core.net = new arc.Net();
@@ -110,11 +118,46 @@ public class Messages extends ListenerAdapter{
             //may not be able to send messages to this user, ignore
         }
         builder.append("Welcome <@");
-	builder.append(event.getUser().getId());
-	builder.append("> to the #social Discord!");
+	    builder.append(event.getUser().getId());
+	    builder.append("> to the #social Discord!");
         guild.getTextChannelById(CoreBot.generalChannelID).sendMessage(builder.toString()).queue();
+        validateNickname(event.getMember());
     }
-
+    
+    @Override
+    public void onGuildMemberUpdateNickname(GuildMemberUpdateNicknameEvent event){
+        validateNickname(event.getMember());
+    }
+    
+    public void validateNickname(Member member){
+        char[] nick = member.getEffectiveName().toCharArray();
+        if(!fixNickname(nick) && guild.getSelfMember().canInteract(member)) {
+            String newNick = new String(nick);
+	        member.modifyNickname(newNick).queue();
+            member.getUser().openPrivateChannel()
+                .flatMap(c -> c.sendMessage(invalidNicknameMessage + newNick))
+                .queue(m -> {}, t -> {});
+    	}
+    }
+    
+    public static boolean fixNickname(char[] nickname) {
+        boolean allowed = true;
+        for (int i = 0; i < nickname.length; i++) {
+            boolean allowedCharacter = false;
+            for (int[] range : allowedRanges) {
+                if (nickname[i] >= range[0] && nickname[i] <= range[1]) {
+                    allowedCharacter = true;
+                    break;
+                }
+            }
+            if (!allowedCharacter) {
+                allowed = false;
+                nickname[i] = '?';
+            }
+        }
+        return allowed;
+    }
+    
     public void sendUpdate(VersionInfo info){
         /*String text = info.description;
         int maxLength = 2000;
