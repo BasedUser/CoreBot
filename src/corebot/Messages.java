@@ -9,6 +9,7 @@ import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.guild.member.*;
 import net.dv8tion.jda.api.events.guild.member.update.*;
 import net.dv8tion.jda.api.events.message.*;
+import net.dv8tion.jda.api.events.user.update.UserUpdateNameEvent;
 import net.dv8tion.jda.api.hooks.*;
 import net.dv8tion.jda.api.requests.*;
 import net.dv8tion.jda.api.utils.*;
@@ -128,6 +129,11 @@ public class Messages extends ListenerAdapter{
     @Override
     public void onGuildMemberUpdateNickname(GuildMemberUpdateNicknameEvent event){
         validateNickname(event.getMember());
+    }
+
+    @Override
+    public void onUserUpdateName(UserUpdateNameEvent event){
+        guild.retrieveMember(event.getUser()).queue(this::validateNickname, t -> {});
     }
     
     public void validateNickname(Member member){
