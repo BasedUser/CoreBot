@@ -30,7 +30,8 @@ public class Messages extends ListenerAdapter{
     Guild guild;
     Color normalColor = Color.decode("#FAB462");
     Color errorColor = Color.decode("#ff3838");
-	private static final int[][] allowedRanges = { { 0x0020, 0x007E } };
+	private static final int[][] allowedRanges =
+	    { { 0x0020, 0x007E }, { 0x00A7, 0x00A7 }, { 0x00BC, 0x00BE }, { 0x0400, 0x045F } };
 	private static final int maxNickLength = 32;
 	private static final String invalidNicknameMessage = "Your nickname contains characters that are not allowed." +
 		"Allowed are all printable ASCII and Cyrillic characters. Your nickname has been changed to ";
